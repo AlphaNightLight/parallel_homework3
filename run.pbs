@@ -1,0 +1,39 @@
+#!/bin/bash
+# Job name
+#PBS -N IntroPARCO_homework2_alex_pegoraro
+# Output files
+#PBS -o ./outputs.o
+#PBS -e ./errors.e
+# Queue name
+#PBS -q short_cpuQ
+# Set the maximum wall time
+#PBS -l walltime=03:00:00
+# Number of nodes, cpus, threads and amount of memory
+#PBS -l select=1:ncpus=64:ompthreads=64:mem=1gb
+# Mail information
+#PBS -m abe
+#PBS -M alex.pegoraro@unitn.it
+
+# Modules for C
+module load gcc91
+
+g++() {
+    g++-9.1.0 "$@"
+}
+
+g++ --version
+
+gcc() {
+    gcc-9.1.0 "$@"
+}
+gcc --version
+
+# To check the architecture
+lscpu
+
+# Select the working directory
+cd /home/alex.pegoraro/parallel_homework2
+
+# The code should be compiled before running the code
+bash compile.sh
+bash benchmark.sh
