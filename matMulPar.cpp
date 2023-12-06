@@ -1,3 +1,5 @@
+#include <mpi.h>
+
 #include <iostream>
 #include <fstream>
 #include <iomanip>
@@ -5,7 +7,9 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include <chrono>
+//#include <chrono>
+
+#define MASTER 0
 
 #define N_TRIALS 1
 // To reduce spikes an averege will be performed
@@ -29,18 +33,23 @@ Matrix allocate_matrix(int, int);
 void deallocate_matrix(Matrix);
 
 Matrix random_dense_matrix(int, int);
-mat_and_time matMul(Matrix, Matrix);
+mat_and_time matMulPar(Matrix, Matrix);
+void subMatMulPar(int);
 
 void print_matrix(Matrix, string);
 
 int main(int argc, char** argv)
 {
 	srand(time(NULL));
-	//ofstream report_file("reports/serial/report_matMul.csv", std::ios_base::app);
-	ofstream report_file("report_matMul.csv", std::ios_base::app);
-	float execution_time;
+	
+	int my_rank, size;
 	int i, j;
 	
+	MPI_Init(&argc, &argv);
+	MPI_Comm_size(MPI_COMM_WORLD, &size);
+	MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+	
+	float execution_time;
 	int ROW_N_A, COL_N_A, COL_N_B;
 	// For the matrices to be product compatible, if the first is ROW_N_A x COL_N_A,
 	// the second must be COL_N_A x COL_N_B.
@@ -63,33 +72,52 @@ int main(int argc, char** argv)
 				COL_N_B = 64;
 				break;
 		}*/
+		
 		ROW_N_A = 4;
 		COL_N_A = 4;
 		COL_N_B = 4;
 		execution_time = 0.0;
 		
-		for (j=0;j<N_TRIALS;++j){
-			Matrix A = random_dense_matrix(ROW_N_A, COL_N_A);
-			print_matrix(A, "A"); // Debug
-			Matrix B = random_dense_matrix(COL_N_A, COL_N_B);
-			print_matrix(B, "B"); // Debug
-			
-			mat_and_time C_struct = matMul(A, B);
-			Matrix C = C_struct.M;
-			print_matrix(C, "C"); // Debug
-			
-			execution_time += C_struct.execution_time * (1.0 / N_TRIALS);
-			
-			deallocate_matrix(A);
-			deallocate_matrix(B);
-			deallocate_matrix(C);
+		if (COL_N_B % size != 0){
+			if(my_rank == MASTER){
+				cout << "Error: matrix size not compatible with thread number!" << endl;
+			}
+			MPI_Finalize();
+			return 1;
 		}
 		
-		report_file << fixed << setprecision(6);
-		report_file << ROW_N_A << "," << COL_N_A << "," << COL_N_B << "," << execution_time << endl;
+		for (j=0;j<N_TRIALS;++j){
+			if (my_rank == MASTER){
+				Matrix A = random_dense_matrix(ROW_N_A, COL_N_A);
+				print_matrix(A, "A"); // Debug
+				Matrix B = random_dense_matrix(COL_N_A, COL_N_B);
+				print_matrix(B, "B"); // Debug
+				
+				mat_and_time C_struct = matMulPar(A, B);
+				
+				Matrix C = C_struct.M;
+				print_matrix(C, "C"); // Debug
+				
+				execution_time += C_struct.execution_time * (1.0 / N_TRIALS);
+				
+				deallocate_matrix(A);
+				deallocate_matrix(B);
+				deallocate_matrix(C);
+			} else {
+				subMatMulPar(my_rank);
+			}
+		}
+		
+		if (my_rank == MASTER){
+			//ofstream report_file("reports/serial/report_matMulPar.csv", std::ios_base::app);
+			ofstream report_file("report_matMulPar.csv", std::ios_base::app);
+			report_file << fixed << setprecision(6);
+			report_file << ROW_N_A << "," << COL_N_A << "," << COL_N_B << "," << execution_time << endl;
+			report_file.close();
+		}
 	}
 	
-	report_file.close();
+	MPI_Finalize();
 	return 0;
 }
 
@@ -132,17 +160,19 @@ Matrix random_dense_matrix(int rows, int cols)
 	return M;
 }
 
-mat_and_time matMul(Matrix A, Matrix B)
+mat_and_time matMulPar(Matrix A, Matrix B)
 {
 	Matrix C;
 	C = allocate_matrix(A.rows, B.cols);
+	double start_time, end_time;
 	float execution_time = 0.0;
 	int depth;
 	int i, j, k;
 	
 	if (A.cols == B.rows){
 		depth = A.cols;
-		auto start_time = chrono::high_resolution_clock::now();
+		//auto start_time = chrono::high_resolution_clock::now();
+		start_time = MPI_Wtime();
 		
 		for (i=0;i<C.rows;++i){
 			for (j=0;j<C.cols;++j){
@@ -153,9 +183,12 @@ mat_and_time matMul(Matrix A, Matrix B)
 			}
 		}
 		
-		auto end_time = chrono::high_resolution_clock::now();
-		auto difference_time = chrono::duration_cast<chrono::microseconds>(end_time - start_time);
-		execution_time = difference_time.count() * 1e-6;
+		//auto end_time = chrono::high_resolution_clock::now();
+		//auto difference_time = chrono::duration_cast<chrono::microseconds>(end_time - start_time);
+		//execution_time = difference_time.count() * 1e-6;
+		end_time = MPI_Wtime();
+		// To be coherent with the serial cases, I convert execution_time to float
+		execution_time = (float)(end_time-start_time);
 	} else {
 		cout << "Error: not compatible matrices!" << endl;
 	}
@@ -164,6 +197,16 @@ mat_and_time matMul(Matrix A, Matrix B)
 	retval.M = C;
 	retval.execution_time = execution_time;
 	return retval;
+}
+
+void subMatMulPar(int my_rank)
+{
+	string name = "debug_matMulPar_rank_";
+	name += to_string(my_rank);
+	name += ".txt";
+	ofstream debug_file(name.c_str(), std::ios_base::app);
+	debug_file << "Hello, I'm rank " << my_rank << "!" << endl;
+	debug_file.close();
 }
 
 void print_matrix(Matrix M, string name)

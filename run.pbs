@@ -1,21 +1,23 @@
 #!/bin/bash
 # Job name
-#PBS -N IntroPARCO_homework2_alex_pegoraro
+#PBS -N IntroPARCO_homework3_alex_pegoraro
 # Output files
 #PBS -o ./outputs.o
 #PBS -e ./errors.e
 # Queue name
 #PBS -q short_cpuQ
 # Set the maximum wall time
-#PBS -l walltime=03:00:00
-# Number of nodes, cpus, threads and amount of memory
-#PBS -l select=1:ncpus=64:ompthreads=64:mem=1gb
+#PBS -l walltime=00:03:00
+# Number of nodes, cpus, mpi processors and amount of memory
+#PBS -l select=1:ncpus=4:mpiprocs=4:mem=1mb
 # Mail information
 #PBS -m abe
 #PBS -M alex.pegoraro@unitn.it
 
-# Modules for C
+# Modules for C and MPI
 module load gcc91
+#module load mpich-3.2.1--gcc-9.1.0
+module load mpich-3.2.1--g++-9.1.0
 
 g++() {
     g++-9.1.0 "$@"
@@ -28,12 +30,20 @@ gcc() {
 }
 gcc --version
 
+mpicxx --version
+
 # To check the architecture
 lscpu
 
 # Select the working directory
-cd /home/alex.pegoraro/parallel_homework2
+cd /home/alex.pegoraro/parallel_homework3
 
-# The code should be compiled before running the code
-bash compile.sh
-bash benchmark.sh
+# Before running the code should be compiled
+mpicxx matMulPar.cpp -o matMulPar.out
+#bash compile.sh
+#bash benchmark.sh
+
+# Run the code
+mpiexec -np 4 ./matMulPar.out
+# If you set the number of mpi processors in line 12, here it is enough to type
+# mpiexec ./code.out
