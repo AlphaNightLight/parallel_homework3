@@ -16,8 +16,7 @@
 
 # Modules for C and MPI
 module load gcc91
-#module load mpich-3.2.1--gcc-9.1.0
-module load mpich-3.2.1--g++-9.1.0
+module load mpich-3.2.1--gcc-9.1.0
 
 g++() {
     g++-9.1.0 "$@"
