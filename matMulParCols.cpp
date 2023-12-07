@@ -106,11 +106,19 @@ int main(int argc, char** argv)
 				deallocate_matrix(C);
 			} else {
 				Matrix A = allocate_matrix(ROW_N_A, COL_N_A);
-				Matrix B; // Note: for non-master processes, B is just a dummy parameter to be able to call matMulPar
+				Matrix B = allocate_matrix(1, 1);
+				// Note: for non-master processes, B is just a dummy parameter to be able to call matMulPar. We don't fully allocate it to save space.
+				// We should anyway care of its dimensions, as well as the fact that it must be non-NULL to be placed in a scatter.
+				B.rows = COL_N_A;
+				B.cols = COL_N_B;
 				
 				matMulPar(A, B, size, my_rank);
 				
+				// We remember to reset B's dimension to 1x1, to deallocate it properly.
+				B.rows = 1;
+				B.cols = 1;
 				deallocate_matrix(A);
+				deallocate_matrix(B);
 			}
 		}
 		
@@ -190,7 +198,7 @@ mat_and_time matMulPar(Matrix A, Matrix B, int size, int my_rank)
 		MPI_Bcast(A.vals[i], A.cols, MPI_FLOAT, MASTER, MPI_COMM_WORLD);
 	}
 	for (i=0;i<B.rows;++i){
-		MPI_Scatter(B.vals[i], B.cols/size, MPI_FLOAT, subB.vals[i], subB.cols, MPI_FLOAT, MASTER, MPI_COMM_WORLD);
+		MPI_Scatter(B.vals[i], subB.cols, MPI_FLOAT, subB.vals[i], subB.cols, MPI_FLOAT, MASTER, MPI_COMM_WORLD);
 	}
 	
 	/* Debug */
@@ -212,8 +220,8 @@ mat_and_time matMulPar(Matrix A, Matrix B, int size, int my_rank)
 	debug_file.close();
 	/**/
 	
-	for (i=0;i<C.rows;++i){
-		MPI_Gather(subC.vals[i], subC.cols, MPI_FLOAT, C.vals[i], C.cols/size, MPI_FLOAT, MASTER, MPI_COMM_WORLD);
+	for (i=0;i<subC.rows;++i){
+		MPI_Gather(subC.vals[i], subC.cols, MPI_FLOAT, C.vals[i], subC.cols, MPI_FLOAT, MASTER, MPI_COMM_WORLD);
 	}
 	
 	//auto end_time = chrono::high_resolution_clock::now();
