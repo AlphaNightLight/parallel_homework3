@@ -33,8 +33,7 @@ Matrix allocate_matrix(int, int);
 void deallocate_matrix(Matrix);
 
 Matrix random_dense_matrix(int, int);
-mat_and_time matMulPar(int, Matrix, Matrix);
-void subMatMulPar(int, int, Matrix, Matrix);
+mat_and_time matMulPar(Matrix, Matrix, int, int);
 void multiply(Matrix, Matrix, Matrix);
 
 void print_matrix(Matrix, string);
@@ -95,7 +94,7 @@ int main(int argc, char** argv)
 				Matrix B = random_dense_matrix(COL_N_A, COL_N_B);
 				print_matrix(B, "B"); // Debug
 				
-				mat_and_time C_struct = matMulPar(size, A, B);
+				mat_and_time C_struct = matMulPar(A, B, size, my_rank);
 				
 				Matrix C = C_struct.M;
 				print_matrix(C, "C"); // Debug
@@ -107,12 +106,11 @@ int main(int argc, char** argv)
 				deallocate_matrix(C);
 			} else {
 				Matrix A = allocate_matrix(ROW_N_A, COL_N_A);
-				Matrix B = allocate_matrix(COL_N_A, COL_N_B);
+				Matrix B; // Note: for non-master processes, B is just a dummy parameter to be able to call matMulPar
 				
-				subMatMulPar(my_rank, size, A, B);
+				matMulPar(A, B, size, my_rank);
 				
 				deallocate_matrix(A);
-				deallocate_matrix(B);
 			}
 		}
 		
@@ -168,13 +166,22 @@ Matrix random_dense_matrix(int rows, int cols)
 	return M;
 }
 
-mat_and_time matMulPar(int size, Matrix A, Matrix B)
+// Note: for non-master processes, B and C are just a dummy parameter, only the master really needs them.
+mat_and_time matMulPar(Matrix A, Matrix B, int size, int my_rank)
 {
 	Matrix C;
-	C = allocate_matrix(A.rows, B.cols);
 	double start_time, end_time;
 	float execution_time = 0.0;
 	int i;
+	
+	if (my_rank == MASTER){
+		C = allocate_matrix(A.rows, B.cols);
+	}
+	
+	Matrix subB;
+	subB = allocate_matrix(B.rows, B.cols/size);
+	Matrix subC;
+	subC = allocate_matrix(A.rows, B.cols/size);
 	
 	//auto start_time = chrono::high_resolution_clock::now();
 	start_time = MPI_Wtime();
@@ -183,24 +190,31 @@ mat_and_time matMulPar(int size, Matrix A, Matrix B)
 		MPI_Bcast(A.vals[i], A.cols, MPI_FLOAT, MASTER, MPI_COMM_WORLD);
 	}
 	for (i=0;i<B.rows;++i){
-		MPI_Scatter(B.vals[i], B.cols, MPI_FLOAT, B.vals[i], B.cols, MPI_FLOAT, MASTER, MPI_COMM_WORLD);
+		MPI_Scatter(B.vals[i], B.cols/size, MPI_FLOAT, subB.vals[i], subB.cols, MPI_FLOAT, MASTER, MPI_COMM_WORLD);
 	}
-	B.cols = B.cols / size;
 	
 	/* Debug */
 	string name = "debug_matMulPar_rank_";
-	name += to_string(MASTER);
+	name += to_string(my_rank);
 	name += ".txt";
 	
 	ofstream debug_file(name.c_str(), std::ios_base::app);
 	debug_file << "Hello, I'm rank " << my_rank << "!" << endl;
 	
 	print_matrix_ofstream(A, "A", debug_file);
-	print_matrix_ofstream(B, "B", debug_file);
+	print_matrix_ofstream(subB, "subB", debug_file);
 	/**/
 	
-	/**/B.cols = B.cols * size;
-	//multiply(A, B, C);
+	multiply(A, subB, subC);
+	
+	/* Debug */
+	print_matrix_ofstream(subC, "subC", debug_file);
+	debug_file.close();
+	/**/
+	
+	for (i=0;i<C.rows;++i){
+		MPI_Gather(subC.vals[i], subC.cols, MPI_FLOAT, C.vals[i], C.cols/size, MPI_FLOAT, MASTER, MPI_COMM_WORLD);
+	}
 	
 	//auto end_time = chrono::high_resolution_clock::now();
 	//auto difference_time = chrono::duration_cast<chrono::microseconds>(end_time - start_time);
@@ -213,42 +227,6 @@ mat_and_time matMulPar(int size, Matrix A, Matrix B)
 	retval.M = C;
 	retval.execution_time = execution_time;
 	return retval;
-}
-
-void subMatMulPar(int my_rank, int size, Matrix A, Matrix B)
-{
-	int i;
-	for (i=0;i<A.rows;++i){
-		MPI_Bcast(A.vals[i], A.cols, MPI_FLOAT, MASTER, MPI_COMM_WORLD);
-	}
-	for (i=0;i<B.rows;++i){
-		MPI_Scatter(B.vals[i], B.cols, MPI_FLOAT, B.vals[i], B.cols, MPI_FLOAT, MASTER, MPI_COMM_WORLD);
-	}
-	B.cols = B.cols / size;
-	
-	/* Debug */
-	string name = "debug_matMulPar_rank_";
-	name += to_string(my_rank);
-	name += ".txt";
-	
-	ofstream debug_file(name.c_str(), std::ios_base::app);
-	debug_file << "Hello, I'm rank " << my_rank << "!" << endl;
-	
-	print_matrix_ofstream(A, "A", debug_file);
-	print_matrix_ofstream(B, "B", debug_file);
-	/**/
-	
-	Matrix C;
-	C = allocate_matrix(A.rows, B.cols);
-	
-	multiply(A, B, C);
-	
-	/* Debug */
-	print_matrix_ofstream(C, "C", debug_file);
-	debug_file.close();
-	/**/
-	
-	deallocate_matrix(C);
 }
 
 void multiply(Matrix A, Matrix B, Matrix C){
