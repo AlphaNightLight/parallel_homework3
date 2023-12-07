@@ -38,7 +38,7 @@ void subMatMulPar(int, Matrix, Matrix);
 void multiply(Matrix, Matrix, Matrix);
 
 void print_matrix(Matrix, string);
-void print_matrix_ofstream(Matrix, string, ofstream);
+void print_matrix_ofstream(Matrix, string, ofstream&);
 
 int main(int argc, char** argv)
 {
@@ -106,7 +106,7 @@ int main(int argc, char** argv)
 				deallocate_matrix(B);
 				deallocate_matrix(C);
 			} else {
-				Matrix A = random_dense_matrix(ROW_N_A, COL_N_A);
+				Matrix A = allocate_matrix(ROW_N_A, COL_N_A);
 				Matrix B = random_dense_matrix(COL_N_A, COL_N_B/size);
 				
 				subMatMulPar(my_rank, A, B);
@@ -174,9 +174,14 @@ mat_and_time matMulPar(Matrix A, Matrix B)
 	C = allocate_matrix(A.rows, B.cols);
 	double start_time, end_time;
 	float execution_time = 0.0;
+	int i;
 	
 	//auto start_time = chrono::high_resolution_clock::now();
 	start_time = MPI_Wtime();
+	
+	for (i=0;i<A.rows;++i){
+		MPI_Bcast(A.vals[i], A.cols, MPI_FLOAT, MASTER, MPI_COMM_WORLD);
+	}
 	
 	multiply(A, B, C);
 	
@@ -195,6 +200,10 @@ mat_and_time matMulPar(Matrix A, Matrix B)
 
 void subMatMulPar(int my_rank, Matrix A, Matrix B)
 {
+	for (i=0;i<A.rows;++i){
+		MPI_Bcast(A.vals[i], A.cols, MPI_FLOAT, MASTER, MPI_COMM_WORLD);
+	}
+	
 	/* Debug */
 	string name = "debug_matMulPar_rank_";
 	name += to_string(my_rank);
@@ -217,7 +226,7 @@ void subMatMulPar(int my_rank, Matrix A, Matrix B)
 	debug_file.close();
 	/**/
 	
-	deallocate(C);
+	deallocate_matrix(C);
 }
 
 void multiply(Matrix A, Matrix B, Matrix C){
@@ -255,7 +264,7 @@ void print_matrix(Matrix M, string name)
 	cout << endl;
 }
 
-void print_matrix_ofstream(Matrix M, string name, ofstream os)
+void print_matrix_ofstream(Matrix M, string name, ofstream& os)
 {
 	int i, j;
 	os << fixed << setprecision(5);
