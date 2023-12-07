@@ -33,8 +33,8 @@ Matrix allocate_matrix(int, int);
 void deallocate_matrix(Matrix);
 
 Matrix random_dense_matrix(int, int);
-mat_and_time matMulPar(Matrix, Matrix);
-void subMatMulPar(int, Matrix, Matrix);
+mat_and_time matMulPar(int, Matrix, Matrix);
+void subMatMulPar(int, int, Matrix, Matrix);
 void multiply(Matrix, Matrix, Matrix);
 
 void print_matrix(Matrix, string);
@@ -95,7 +95,7 @@ int main(int argc, char** argv)
 				Matrix B = random_dense_matrix(COL_N_A, COL_N_B);
 				print_matrix(B, "B"); // Debug
 				
-				mat_and_time C_struct = matMulPar(A, B);
+				mat_and_time C_struct = matMulPar(size, A, B);
 				
 				Matrix C = C_struct.M;
 				print_matrix(C, "C"); // Debug
@@ -107,9 +107,9 @@ int main(int argc, char** argv)
 				deallocate_matrix(C);
 			} else {
 				Matrix A = allocate_matrix(ROW_N_A, COL_N_A);
-				Matrix B = random_dense_matrix(COL_N_A, COL_N_B/size);
+				Matrix B = allocate_matrix(COL_N_A, COL_N_B);
 				
-				subMatMulPar(my_rank, A, B);
+				subMatMulPar(my_rank, size, A, B);
 				
 				deallocate_matrix(A);
 				deallocate_matrix(B);
@@ -168,7 +168,7 @@ Matrix random_dense_matrix(int rows, int cols)
 	return M;
 }
 
-mat_and_time matMulPar(Matrix A, Matrix B)
+mat_and_time matMulPar(int size, Matrix A, Matrix B)
 {
 	Matrix C;
 	C = allocate_matrix(A.rows, B.cols);
@@ -182,8 +182,25 @@ mat_and_time matMulPar(Matrix A, Matrix B)
 	for (i=0;i<A.rows;++i){
 		MPI_Bcast(A.vals[i], A.cols, MPI_FLOAT, MASTER, MPI_COMM_WORLD);
 	}
+	for (i=0;i<B.rows;++i){
+		MPI_Scatter(B.vals[i], B.cols, MPI_FLOAT, B.vals[i], B.cols, MPI_FLOAT, MASTER, MPI_COMM_WORLD);
+	}
+	B.cols = B.cols / size;
 	
-	multiply(A, B, C);
+	/* Debug */
+	string name = "debug_matMulPar_rank_";
+	name += to_string(MASTER);
+	name += ".txt";
+	
+	ofstream debug_file(name.c_str(), std::ios_base::app);
+	debug_file << "Hello, I'm rank " << my_rank << "!" << endl;
+	
+	print_matrix_ofstream(A, "A", debug_file);
+	print_matrix_ofstream(B, "B", debug_file);
+	/**/
+	
+	/**/B.cols = B.cols * size;
+	//multiply(A, B, C);
 	
 	//auto end_time = chrono::high_resolution_clock::now();
 	//auto difference_time = chrono::duration_cast<chrono::microseconds>(end_time - start_time);
@@ -198,11 +215,16 @@ mat_and_time matMulPar(Matrix A, Matrix B)
 	return retval;
 }
 
-void subMatMulPar(int my_rank, Matrix A, Matrix B)
+void subMatMulPar(int my_rank, int size, Matrix A, Matrix B)
 {
+	int i;
 	for (i=0;i<A.rows;++i){
 		MPI_Bcast(A.vals[i], A.cols, MPI_FLOAT, MASTER, MPI_COMM_WORLD);
 	}
+	for (i=0;i<B.rows;++i){
+		MPI_Scatter(B.vals[i], B.cols, MPI_FLOAT, B.vals[i], B.cols, MPI_FLOAT, MASTER, MPI_COMM_WORLD);
+	}
+	B.cols = B.cols / size;
 	
 	/* Debug */
 	string name = "debug_matMulPar_rank_";
