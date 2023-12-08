@@ -231,6 +231,9 @@ mat_and_time matMulPar(Matrix A, Matrix B, int size, int my_rank)
 	// To be coherent with the serial cases, I convert execution_time to float
 	execution_time = (float)(end_time-start_time);
 	
+	deallocate_matrix(subB);
+	deallocate_matrix(subC);
+	
 	mat_and_time retval;
 	retval.M = C;
 	retval.execution_time = execution_time;

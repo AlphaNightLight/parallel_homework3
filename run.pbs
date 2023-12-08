@@ -38,11 +38,11 @@ lscpu
 cd /home/alex.pegoraro/parallel_homework3
 
 # Before running the code should be compiled
-mpicxx matMulPar.cpp -o matMulParRows.out
+mpicxx matMulBlockPar.cpp -o matMulBlockPar.out
 #bash compile.sh
 #bash benchmark.sh
 
 # Run the code
-mpiexec -np 4 ./matMulParRows.out
+mpiexec -np 4 ./matMulBlockPar.out
 # If you set the number of mpi processors in line 12, here it is enough to type
 # mpiexec ./code.out

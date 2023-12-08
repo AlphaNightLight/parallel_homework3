@@ -33,7 +33,7 @@ Matrix allocate_matrix(int, int);
 void deallocate_matrix(Matrix);
 
 Matrix random_dense_matrix(int, int);
-mat_and_time matMulPar(Matrix, Matrix, int, int);
+mat_and_time matMulPar(Matrix, Matrix, int, int, int, int);
 void multiply(Matrix, Matrix, Matrix);
 
 void print_matrix(Matrix, string);
@@ -54,6 +54,8 @@ int main(int argc, char** argv)
 	int ROW_N_A, COL_N_A, COL_N_B;
 	// For the matrices to be product compatible, if the first is ROW_N_A x COL_N_A,
 	// the second must be COL_N_A x COL_N_B.
+	int BLOCK_ROW_N, BLOCK_COL_N;
+	// Each block will be a marix BLOCK_ROW_N x BLOCK_COL_N
 	
 	for (i=0;i<1;++i){//(i=0;i<3;++i){
 		/*switch(i){
@@ -77,11 +79,21 @@ int main(int argc, char** argv)
 		ROW_N_A = 4;
 		COL_N_A = 4;
 		COL_N_B = 4;
+		BLOCK_ROW_N = 2;
+		BLOCK_COL_N = 2;
 		execution_time = 0.0;
 		
-		if (ROW_N_A % size != 0){
+		if (COL_N_A % size != 0){
 			if(my_rank == MASTER){
 				cout << "Error: matrix size not compatible with thread number!" << endl;
+			}
+			MPI_Finalize();
+			return 1;
+		}
+		
+		if (ROW_N_A % BLOCK_ROW_N != 0 || COL_N_B % BLOCK_COL_N != 0){
+			if(my_rank == MASTER){
+				cout << "Error: matrix size not compatible with block size!" << endl;
 			}
 			MPI_Finalize();
 			return 1;
@@ -94,7 +106,7 @@ int main(int argc, char** argv)
 				Matrix B = random_dense_matrix(COL_N_A, COL_N_B);
 				print_matrix(B, "B"); // Debug
 				
-				mat_and_time C_struct = matMulPar(A, B, size, my_rank);
+				mat_and_time C_struct = matMulPar(A, B, size, my_rank, BLOCK_ROW_N, BLOCK_COL_N);
 				
 				Matrix C = C_struct.M;
 				print_matrix(C, "C"); // Debug
@@ -105,11 +117,21 @@ int main(int argc, char** argv)
 				deallocate_matrix(B);
 				deallocate_matrix(C);
 			} else {
-				Matrix A = allocate_matrix(ROW_N_A/size, COL_N_A);
-				Matrix B = allocate_matrix(COL_N_A, COL_N_B);
+				Matrix A = allocate_matrix(1, 1);
+				Matrix B = allocate_matrix(1, 1);
+				// Note: again, for non-master processes,we need just dummy A and B.
+				A.rows = ROW_N_A;
+				A.cols = COL_N_A;
+				B.rows = COL_N_A;
+				B.cols = COL_N_B;
 				
-				deallocate_matrix(matMulPar(A, B, size, my_rank).M);
+				matMulPar(A, B, size, my_rank, BLOCK_ROW_N, BLOCK_COL_N);
 				
+				// We remember to reset A's and B's dimension to 1x1, to deallocate them properly.
+				A.rows = 1;
+				A.cols = 1;
+				B.rows = 1;
+				B.cols = 1;
 				deallocate_matrix(A);
 				deallocate_matrix(B);
 			}
@@ -167,87 +189,77 @@ Matrix random_dense_matrix(int rows, int cols)
 	return M;
 }
 
-mat_and_time matMulPar(Matrix A, Matrix B, int size, int my_rank)
+// Note: for non-master processes, A, B and C are just a dummy parameter, only the master really needs them.
+mat_and_time matMulPar(Matrix A, Matrix B, int size, int my_rank, int BLOCK_ROW_N, int BLOCK_COL_N)
 {
 	Matrix C;
-	C = allocate_matrix(A.rows, B.cols);
 	double start_time, end_time;
 	float execution_time = 0.0;
-	int i;
+	int outer_rows, outer_cols;
+	int i, j, i_out, j_out;
+	
+	if (my_rank == MASTER){
+		C = allocate_matrix(A.rows, B.cols);
+	}
+	
+	Matrix subA;
+	subA = allocate_matrix(BLOCK_ROW_N, A.cols/size);
+	Matrix subB;
+	subB = allocate_matrix(B.rows/size, BLOCK_COL_N);
+	Matrix subC;
+	subC = allocate_matrix(BLOCK_ROW_N, BLOCK_COL_N);
+	
+	outer_rows = A.rows / BLOCK_ROW_N;
+	outer_cols = B.cols / BLOCK_COL_N;
 	
 	//auto start_time = chrono::high_resolution_clock::now();
 	start_time = MPI_Wtime();
 	
-	for (i=0;i<B.rows;++i){
-		MPI_Bcast(B.vals[i], B.cols, MPI_FLOAT, MASTER, MPI_COMM_WORLD);
-	}
-	
-	if (my_rank == MASTER){
-		int dest;
-		for (i=0;i<A.rows;++i){
-			dest = (i * size) / A.rows; // i / (A.rows / size);
-			if (dest != MASTER){
-				MPI_Send(A.vals[i], A.cols, MPI_FLOAT, dest, 0, MPI_COMM_WORLD);
+	for (i_out=0;i_out<outer_rows;++i_out){ // for each block
+		for (i=0;i<subA.rows;++i){
+			MPI_Scatter(A.vals[i_out*subA.rows + i], subA.cols, MPI_FLOAT, subA.vals[i], subA.cols, MPI_FLOAT, MASTER, MPI_COMM_WORLD);
+		}
+		for (j_out=0;j_out<outer_cols;++j_out){ // for each block
+			if (my_rank == MASTER){
+				int dest;
+				for (i=0;i<B.rows;++i){
+					dest = i / subB.rows;
+					if (dest != MASTER){
+						MPI_Send(B.vals[i] + j_out*subB.cols, subB.cols, MPI_FLOAT, dest, 0, MPI_COMM_WORLD);
+					} else {
+						for (j=0;j<subB.cols;++j){
+							subB[i % subB.rows][j] = B[i][j + j_out*subB.cols];
+						}
+					}
+				}
+			} else {
+				for (i=0;i<subB.rows;++i){
+					MPI_Recv(subB.vals[i], subB.cols, MPI_FLOAT, MASTER, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+				}
 			}
-		}
-		
-		if (MASTER != 0){
-			int master_base = MASTER * (A.rows/size);
-			for (i=0;i<A.rows/size;++i){
-				A.vals[i] = A.vals[i + master_base];
+			
+			/* Debug */
+			string name = "debug_matMulPar_rank_";
+			name += to_string(my_rank);
+			name += ".txt";
+			
+			ofstream debug_file(name.c_str(), std::ios_base::app);
+			debug_file << "Hello, I'm rank " << my_rank << "!" << endl;
+			
+			print_matrix_ofstream(subA, "subA", debug_file);
+			print_matrix_ofstream(subB, "subB", debug_file);
+			/**/
+			
+			multiply(subA, subB, subC);
+			
+			/* Debug */
+			print_matrix_ofstream(subC, "subC", debug_file);
+			debug_file.close();
+			/**/
+			
+			for (i=0;i<subC.rows;++i){
+				MPI_Reduce(subC.vals[i], C.vals[i + i_out*subC.rows] + j_out*subC.cols, subC.cols, MPI_FLOAT, MPI_SUM, MASTER, MPI_COMM_WORLD);
 			}
-		}
-		
-		// For the master the local submatrix A is the Final A, same for C. So, we need to restrict them to the first rows.
-		A.rows = A.rows / size;
-		C.rows = C.rows / size;
-	} else {
-		for (i=0;i<A.rows;++i){
-			MPI_Recv(A.vals[i], A.cols, MPI_FLOAT, MASTER, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-		}
-	}
-	
-	/* Debug */
-	string name = "debug_matMulPar_rank_";
-	name += to_string(my_rank);
-	name += ".txt";
-	
-	ofstream debug_file(name.c_str(), std::ios_base::app);
-	debug_file << "Hello, I'm rank " << my_rank << "!" << endl;
-	
-	print_matrix_ofstream(A, "A", debug_file);
-	print_matrix_ofstream(B, "B", debug_file);
-	/**/
-	
-	multiply(A, B, C);
-	
-	/* Debug */
-	print_matrix_ofstream(C, "C", debug_file);
-	debug_file.close();
-	/**/
-	
-	if (my_rank == MASTER){
-		// For the master the local submatrix A is the Final A, same for C. So, we need to restrict them to the first rows.
-		A.rows = A.rows * size;
-		C.rows = C.rows * size;
-		
-		if (MASTER != 0){
-			int master_base = MASTER * (C.rows/size);
-			for (i=0;i<C.rows/size;++i){
-				C.vals[i + master_base] = C.vals[i];
-			}
-		}
-		
-		int source;
-		for (i=0;i<C.rows;++i){
-			source = (i * size) / C.rows; // i / (A.rows / size);
-			if (source != MASTER){
-				MPI_Recv(C.vals[i], C.cols, MPI_FLOAT, source, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-			}
-		}
-	} else {
-		for (i=0;i<C.rows;++i){
-			MPI_Send(C.vals[i], C.cols, MPI_FLOAT, MASTER, 0, MPI_COMM_WORLD);
 		}
 	}
 	
@@ -257,6 +269,10 @@ mat_and_time matMulPar(Matrix A, Matrix B, int size, int my_rank)
 	end_time = MPI_Wtime();
 	// To be coherent with the serial cases, I convert execution_time to float
 	execution_time = (float)(end_time-start_time);
+	
+	deallocate_matrix(subA);
+	deallocate_matrix(subB);
+	deallocate_matrix(subC);
 	
 	mat_and_time retval;
 	retval.M = C;
