@@ -1,7 +1,3 @@
-rm -f matMulBlockPar.out
-rm -f report_matMulPar.csv
-
-for i in {0..3};
-do
-	rm -f debug_matMulPar_rank_$i.txt
-done
+rm -f -r bin
+rm -f -r reports
+rm -f -r debugs

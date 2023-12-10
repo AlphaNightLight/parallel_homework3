@@ -45,6 +45,7 @@ int main(int argc, char** argv)
 	
 	int my_rank, size;
 	int i, j;
+	int scaling_type;
 	
 	MPI_Init(&argc, &argv);
 	MPI_Comm_size(MPI_COMM_WORLD, &size);
@@ -57,92 +58,101 @@ int main(int argc, char** argv)
 	int BLOCK_ROW_N, BLOCK_COL_N;
 	// Each block will be a marix BLOCK_ROW_N x BLOCK_COL_N
 	
-	for (i=0;i<1;++i){//(i=0;i<3;++i){
-		/*switch(i){
-			case 0:
-				ROW_N_A = 32;
-				COL_N_A = 256;
-				COL_N_B = 32;
-				break;
-			case 1:
-				ROW_N_A = 128;
-				COL_N_A = 16;
-				COL_N_B = 128;
-				break;
-			case 2:
-				ROW_N_A = 64;
-				COL_N_A = 64;
-				COL_N_B = 64;
-				break;
-		}*/
-		
-		ROW_N_A = 4;
-		COL_N_A = 4;
-		COL_N_B = 4;
-		BLOCK_ROW_N = 2;
-		BLOCK_COL_N = 2;
-		execution_time = 0.0;
-		
-		if (COL_N_A % size != 0){
-			if(my_rank == MASTER){
-				cout << "Error: matrix size not compatible with thread number!" << endl;
+	for (scaling_type=0;scaling_type<1;++scaling_type){//(scaling_type=0;scaling_type<2;++scaling_type){
+		for (i=0;i<1;++i){//(i=0;i<3;++i){
+			/*switch(i){
+				case 0:
+					ROW_N_A = 32;
+					COL_N_A = 256;
+					COL_N_B = 32;
+					break;
+				case 1:
+					ROW_N_A = 128;
+					COL_N_A = 16;
+					COL_N_B = 128;
+					break;
+				case 2:
+					ROW_N_A = 64;
+					COL_N_A = 64;
+					COL_N_B = 64;
+					break;
+			}*/
+			
+			ROW_N_A = 4;
+			COL_N_A = 4;
+			COL_N_B = 4;
+			BLOCK_ROW_N = 2;
+			BLOCK_COL_N = 2;
+			execution_time = 0.0;
+			
+			if (scaling_type == 1){
+				COL_N_A *= size;
 			}
-			MPI_Finalize();
-			return 1;
-		}
-		
-		if (ROW_N_A % BLOCK_ROW_N != 0 || COL_N_B % BLOCK_COL_N != 0){
-			if(my_rank == MASTER){
-				cout << "Error: matrix size not compatible with block size!" << endl;
+			
+			if (COL_N_A % size != 0){
+				if(my_rank == MASTER){
+					cout << "Error: matrix size not compatible with thread number!" << endl;
+				}
+				MPI_Finalize();
+				return 1;
 			}
-			MPI_Finalize();
-			return 1;
-		}
-		
-		for (j=0;j<N_TRIALS;++j){
+			
+			if (ROW_N_A % BLOCK_ROW_N != 0 || COL_N_B % BLOCK_COL_N != 0){
+				if(my_rank == MASTER){
+					cout << "Error: matrix size not compatible with block size!" << endl;
+				}
+				MPI_Finalize();
+				return 1;
+			}
+			
+			for (j=0;j<N_TRIALS;++j){
+				if (my_rank == MASTER){
+					Matrix A = random_dense_matrix(ROW_N_A, COL_N_A);
+					print_matrix(A, "A"); // Debug
+					Matrix B = random_dense_matrix(COL_N_A, COL_N_B);
+					print_matrix(B, "B"); // Debug
+					
+					mat_and_time C_struct = matMulPar(A, B, size, my_rank, BLOCK_ROW_N, BLOCK_COL_N);
+					
+					Matrix C = C_struct.M;
+					print_matrix(C, "C"); // Debug
+					
+					execution_time += C_struct.execution_time * (1.0 / N_TRIALS);
+					
+					deallocate_matrix(A);
+					deallocate_matrix(B);
+					deallocate_matrix(C);
+				} else {
+					Matrix A = allocate_matrix(1, 1);
+					Matrix B = allocate_matrix(1, 1);
+					// Note: again, for non-master processes, we need just dummy A and B.
+					A.rows = ROW_N_A;
+					A.cols = COL_N_A;
+					B.rows = COL_N_A;
+					B.cols = COL_N_B;
+					
+					deallocate_matrix(matMulPar(A, B, size, my_rank, BLOCK_ROW_N, BLOCK_COL_N).M);
+					
+					// We remember to reset A's and B's dimension to 1x1, to deallocate them properly.
+					A.rows = 1;
+					A.cols = 1;
+					B.rows = 1;
+					B.cols = 1;
+					deallocate_matrix(A);
+					deallocate_matrix(B);
+				}
+			}
+			
 			if (my_rank == MASTER){
-				Matrix A = random_dense_matrix(ROW_N_A, COL_N_A);
-				print_matrix(A, "A"); // Debug
-				Matrix B = random_dense_matrix(COL_N_A, COL_N_B);
-				print_matrix(B, "B"); // Debug
-				
-				mat_and_time C_struct = matMulPar(A, B, size, my_rank, BLOCK_ROW_N, BLOCK_COL_N);
-				
-				Matrix C = C_struct.M;
-				print_matrix(C, "C"); // Debug
-				
-				execution_time += C_struct.execution_time * (1.0 / N_TRIALS);
-				
-				deallocate_matrix(A);
-				deallocate_matrix(B);
-				deallocate_matrix(C);
-			} else {
-				Matrix A = allocate_matrix(1, 1);
-				Matrix B = allocate_matrix(1, 1);
-				// Note: again, for non-master processes,we need just dummy A and B.
-				A.rows = ROW_N_A;
-				A.cols = COL_N_A;
-				B.rows = COL_N_A;
-				B.cols = COL_N_B;
-				
-				matMulPar(A, B, size, my_rank, BLOCK_ROW_N, BLOCK_COL_N);
-				
-				// We remember to reset A's and B's dimension to 1x1, to deallocate them properly.
-				A.rows = 1;
-				A.cols = 1;
-				B.rows = 1;
-				B.cols = 1;
-				deallocate_matrix(A);
-				deallocate_matrix(B);
+				if (scaling_type == 0){
+					ofstream report_file("reports/report_matMulBlockPar_strong.csv", std::ios_base::app);
+				} else {
+					ofstream report_file("reports/report_matMulBlockPar_weak.csv", std::ios_base::app);
+				}
+				report_file << fixed << setprecision(6);
+				report_file << size << "," << ROW_N_A << "," << COL_N_A << "," << COL_N_B << "," << execution_time << endl;
+				report_file.close();
 			}
-		}
-		
-		if (my_rank == MASTER){
-			//ofstream report_file("reports/serial/report_matMulPar.csv", std::ios_base::app);
-			ofstream report_file("report_matMulPar.csv", std::ios_base::app);
-			report_file << fixed << setprecision(6);
-			report_file << ROW_N_A << "," << COL_N_A << "," << COL_N_B << "," << execution_time << endl;
-			report_file.close();
 		}
 	}
 	
@@ -200,6 +210,10 @@ mat_and_time matMulPar(Matrix A, Matrix B, int size, int my_rank, int BLOCK_ROW_
 	
 	if (my_rank == MASTER){
 		C = allocate_matrix(A.rows, B.cols);
+	} else {
+		C = allocate_matrix(1, 1);
+		C.rows = A.rows;
+		C.cols = B.cols;
 	}
 	
 	Matrix subA;
@@ -228,7 +242,7 @@ mat_and_time matMulPar(Matrix A, Matrix B, int size, int my_rank, int BLOCK_ROW_
 						MPI_Send(B.vals[i] + j_out*subB.cols, subB.cols, MPI_FLOAT, dest, 0, MPI_COMM_WORLD);
 					} else {
 						for (j=0;j<subB.cols;++j){
-							subB[i % subB.rows][j] = B[i][j + j_out*subB.cols];
+							subB.vals[i % subB.rows][j] = B.vals[i][j + j_out*subB.cols];
 						}
 					}
 				}
@@ -239,7 +253,7 @@ mat_and_time matMulPar(Matrix A, Matrix B, int size, int my_rank, int BLOCK_ROW_
 			}
 			
 			/* Debug */
-			string name = "debug_matMulPar_rank_";
+			string name = "debugs/debug_matMulBlockPar_rank_";
 			name += to_string(my_rank);
 			name += ".txt";
 			
@@ -273,6 +287,11 @@ mat_and_time matMulPar(Matrix A, Matrix B, int size, int my_rank, int BLOCK_ROW_
 	deallocate_matrix(subA);
 	deallocate_matrix(subB);
 	deallocate_matrix(subC);
+	
+	if (my_rank != MASTER){
+		C.rows = 1;
+		C.cols = 1;
+	}
 	
 	mat_and_time retval;
 	retval.M = C;

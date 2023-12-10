@@ -7,7 +7,7 @@
 # Queue name
 #PBS -q short_cpuQ
 # Set the maximum wall time
-#PBS -l walltime=00:01:00
+#PBS -l walltime=00:03:00
 # Number of nodes, cpus, mpi processors and amount of memory
 #PBS -l select=1:ncpus=4:mpiprocs=4:mem=1mb
 # Mail information
@@ -21,7 +21,6 @@ module load mpich-3.2.1--gcc-9.1.0
 g++() {
     g++-9.1.0 "$@"
 }
-
 g++ --version
 
 gcc() {
@@ -38,11 +37,10 @@ lscpu
 cd /home/alex.pegoraro/parallel_homework3
 
 # Before running the code should be compiled
-mpicxx matMulBlockPar.cpp -o matMulBlockPar.out
-#bash compile.sh
-#bash benchmark.sh
+bash compile.sh
 
 # Run the code
-mpiexec -np 4 ./matMulBlockPar.out
+bash benchmark.sh
+
 # If you set the number of mpi processors in line 12, here it is enough to type
 # mpiexec ./code.out

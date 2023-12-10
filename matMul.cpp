@@ -36,8 +36,7 @@ void print_matrix(Matrix, string);
 int main(int argc, char** argv)
 {
 	srand(time(NULL));
-	//ofstream report_file("reports/serial/report_matMul.csv", std::ios_base::app);
-	ofstream report_file("report_matMul.csv", std::ios_base::app);
+	ofstream report_file("reports/report_matMul.csv", std::ios_base::app);
 	float execution_time;
 	int i, j;
 	
