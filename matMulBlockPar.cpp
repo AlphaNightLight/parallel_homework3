@@ -11,7 +11,7 @@
 
 #define MASTER 0
 
-#define N_TRIALS 1
+#define N_TRIALS 3
 // To reduce spikes an averege will be performed
 
 using namespace std;
@@ -58,29 +58,29 @@ int main(int argc, char** argv)
 	int BLOCK_ROW_N, BLOCK_COL_N;
 	// Each block will be a marix BLOCK_ROW_N x BLOCK_COL_N
 	
-	for (scaling_type=0;scaling_type<1;++scaling_type){//(scaling_type=0;scaling_type<2;++scaling_type){
+	for (scaling_type=0;scaling_type<2;++scaling_type){
 		for (i=0;i<3;++i){
 			switch(i){
 				case 0:
-					ROW_N_A = 4;
-					COL_N_A = 4;
-					COL_N_B = 4;
-					BLOCK_ROW_N = 1;
-					BLOCK_COL_N = 1;
+					ROW_N_A = 512;
+					COL_N_A = 512;
+					COL_N_B = 512;
+					BLOCK_ROW_N = 8;
+					BLOCK_COL_N = 8;
 					break;
 				case 1:
-					ROW_N_A = 4;
-					COL_N_A = 4;
-					COL_N_B = 4;
-					BLOCK_ROW_N = 2;
-					BLOCK_COL_N = 2;
+					ROW_N_A = 512;
+					COL_N_A = 512;
+					COL_N_B = 512;
+					BLOCK_ROW_N = 32;
+					BLOCK_COL_N = 32;
 					break;
 				case 2:
-					ROW_N_A = 4;
-					COL_N_A = 4;
-					COL_N_B = 4;
-					BLOCK_ROW_N = 4;
-					BLOCK_COL_N = 4;
+					ROW_N_A = 512;
+					COL_N_A = 512;
+					COL_N_B = 512;
+					BLOCK_ROW_N = 128;
+					BLOCK_COL_N = 128;
 					break;
 			}
 			execution_time = 0.0;
@@ -108,14 +108,14 @@ int main(int argc, char** argv)
 			for (j=0;j<N_TRIALS;++j){
 				if (my_rank == MASTER){
 					Matrix A = random_dense_matrix(ROW_N_A, COL_N_A);
-					print_matrix(A, "A"); // Debug
+					//print_matrix(A, "A"); // Debug
 					Matrix B = random_dense_matrix(COL_N_A, COL_N_B);
-					print_matrix(B, "B"); // Debug
+					//print_matrix(B, "B"); // Debug
 					
 					mat_and_time C_struct = matMulPar(A, B, size, my_rank, BLOCK_ROW_N, BLOCK_COL_N);
 					
 					Matrix C = C_struct.M;
-					print_matrix(C, "C"); // Debug
+					//print_matrix(C, "C"); // Debug
 					
 					execution_time += C_struct.execution_time * (1.0 / N_TRIALS);
 					
@@ -144,10 +144,11 @@ int main(int argc, char** argv)
 			}
 			
 			if (my_rank == MASTER){
+				ofstream report_file;
 				if (scaling_type == 0){
-					ofstream report_file("reports/report_matMulBlockPar_strong.csv", std::ios_base::app);
+					report_file.open("reports/report_matMulBlockPar_strong.csv", std::ios_base::app);
 				} else {
-					ofstream report_file("reports/report_matMulBlockPar_weak.csv", std::ios_base::app);
+					report_file.open("reports/report_matMulBlockPar_weak.csv", std::ios_base::app);
 				}
 				report_file << fixed << setprecision(6);
 				report_file << size << "," << ROW_N_A << "," << COL_N_A << "," << COL_N_B << "," << execution_time << endl;
@@ -252,7 +253,7 @@ mat_and_time matMulPar(Matrix A, Matrix B, int size, int my_rank, int BLOCK_ROW_
 				}
 			}
 			
-			/* Debug */
+			/* Debug *
 			string name = "debugs/debug_matMulBlockPar_rank_";
 			name += to_string(my_rank);
 			name += ".txt";
@@ -266,7 +267,7 @@ mat_and_time matMulPar(Matrix A, Matrix B, int size, int my_rank, int BLOCK_ROW_
 			
 			multiply(subA, subB, subC);
 			
-			/* Debug */
+			/* Debug *
 			print_matrix_ofstream(subC, "subC", debug_file);
 			debug_file.close();
 			/**/

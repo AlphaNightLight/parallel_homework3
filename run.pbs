@@ -7,9 +7,9 @@
 # Queue name
 #PBS -q short_cpuQ
 # Set the maximum wall time
-#PBS -l walltime=00:03:00
+#PBS -l walltime=04:00:00
 # Number of nodes, cpus, mpi processors and amount of memory
-#PBS -l select=1:ncpus=4:mpiprocs=4:mem=1mb
+#PBS -l select=8:ncpus=16:mpiprocs=16:mem=1mb
 # Mail information
 #PBS -m abe
 #PBS -M alex.pegoraro@unitn.it

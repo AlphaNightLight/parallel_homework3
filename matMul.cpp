@@ -7,7 +7,7 @@
 
 #include <chrono>
 
-#define N_TRIALS 1
+#define N_TRIALS 3
 // To reduce spikes an averege will be performed
 
 using namespace std;
@@ -44,20 +44,20 @@ int main(int argc, char** argv)
 	// For the matrices to be product compatible, if the first is ROW_N_A x COL_N_A,
 	// the second must be COL_N_A x COL_N_B.
 	
-	ROW_N_A = 4;
-	COL_N_A = 4;
-	COL_N_B = 4;
+	ROW_N_A = 512;
+	COL_N_A = 512;
+	COL_N_B = 512;
 	execution_time = 0.0;
 	
 	for (i=0;i<N_TRIALS;++i){
 		Matrix A = random_dense_matrix(ROW_N_A, COL_N_A);
-		print_matrix(A, "A"); // Debug
+		//print_matrix(A, "A"); // Debug
 		Matrix B = random_dense_matrix(COL_N_A, COL_N_B);
-		print_matrix(B, "B"); // Debug
+		//print_matrix(B, "B"); // Debug
 		
 		mat_and_time C_struct = matMul(A, B);
 		Matrix C = C_struct.M;
-		print_matrix(C, "C"); // Debug
+		//print_matrix(C, "C"); // Debug
 		
 		execution_time += C_struct.execution_time * (1.0 / N_TRIALS);
 		

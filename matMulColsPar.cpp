@@ -11,7 +11,7 @@
 
 #define MASTER 0
 
-#define N_TRIALS 1
+#define N_TRIALS 3
 // To reduce spikes an averege will be performed
 
 using namespace std;
@@ -56,10 +56,10 @@ int main(int argc, char** argv)
 	// For the matrices to be product compatible, if the first is ROW_N_A x COL_N_A,
 	// the second must be COL_N_A x COL_N_B.
 	
-	for (scaling_type=0;scaling_type<1;++scaling_type){//(scaling_type=0;scaling_type<2;++scaling_type){
-		ROW_N_A = 4;
-		COL_N_A = 4;
-		COL_N_B = 4;
+	for (scaling_type=0;scaling_type<2;++scaling_type){
+		ROW_N_A = 512;
+		COL_N_A = 512;
+		COL_N_B = 512;
 		execution_time = 0.0;
 		
 		if (scaling_type == 1){
@@ -77,14 +77,14 @@ int main(int argc, char** argv)
 		for (j=0;j<N_TRIALS;++j){
 			if (my_rank == MASTER){
 				Matrix A = random_dense_matrix(ROW_N_A, COL_N_A);
-				print_matrix(A, "A"); // Debug
+				//print_matrix(A, "A"); // Debug
 				Matrix B = random_dense_matrix(COL_N_A, COL_N_B);
-				print_matrix(B, "B"); // Debug
+				//print_matrix(B, "B"); // Debug
 				
 				mat_and_time C_struct = matMulPar(A, B, size, my_rank);
 				
 				Matrix C = C_struct.M;
-				print_matrix(C, "C"); // Debug
+				//print_matrix(C, "C"); // Debug
 				
 				execution_time += C_struct.execution_time * (1.0 / N_TRIALS);
 				
@@ -110,10 +110,11 @@ int main(int argc, char** argv)
 		}
 		
 		if (my_rank == MASTER){
+			ofstream report_file;
 			if (scaling_type == 0){
-				ofstream report_file("reports/report_matMulColsPar_strong.csv", std::ios_base::app);
+				report_file.open("reports/report_matMulColsPar_strong.csv", std::ios_base::app);
 			} else {
-				ofstream report_file("reports/report_matMulColsPar_weak.csv", std::ios_base::app);
+				report_file.open("reports/report_matMulColsPar_weak.csv", std::ios_base::app);
 			}
 			report_file << fixed << setprecision(6);
 			report_file << size << "," << ROW_N_A << "," << COL_N_A << "," << COL_N_B << "," << execution_time << endl;
@@ -191,7 +192,7 @@ mat_and_time matMulPar(Matrix A, Matrix B, int size, int my_rank)
 		MPI_Scatter(B.vals[i], subB.cols, MPI_FLOAT, subB.vals[i], subB.cols, MPI_FLOAT, MASTER, MPI_COMM_WORLD);
 	}
 	
-	/* Debug */
+	/* Debug *
 	string name = "debugs/debug_matMulColsPar_rank_";
 	name += to_string(my_rank);
 	name += ".txt";
@@ -205,7 +206,7 @@ mat_and_time matMulPar(Matrix A, Matrix B, int size, int my_rank)
 	
 	multiply(A, subB, subC);
 	
-	/* Debug */
+	/* Debug *
 	print_matrix_ofstream(subC, "subC", debug_file);
 	debug_file.close();
 	/**/
