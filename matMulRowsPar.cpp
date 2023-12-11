@@ -44,7 +44,7 @@ int main(int argc, char** argv)
 	srand(time(NULL));
 	
 	int my_rank, size;
-	int i, j;
+	int i;
 	int scaling_type;
 	
 	MPI_Init(&argc, &argv);
@@ -57,80 +57,60 @@ int main(int argc, char** argv)
 	// the second must be COL_N_A x COL_N_B.
 	
 	for (scaling_type=0;scaling_type<1;++scaling_type){//(scaling_type=0;scaling_type<2;++scaling_type){
-		for (i=0;i<1;++i){//(i=0;i<3;++i){
-			/*switch(i){
-				case 0:
-					ROW_N_A = 32;
-					COL_N_A = 256;
-					COL_N_B = 32;
-					break;
-				case 1:
-					ROW_N_A = 128;
-					COL_N_A = 16;
-					COL_N_B = 128;
-					break;
-				case 2:
-					ROW_N_A = 64;
-					COL_N_A = 64;
-					COL_N_B = 64;
-					break;
-			}*/
-			
-			ROW_N_A = 4;
-			COL_N_A = 4;
-			COL_N_B = 4;
-			execution_time = 0.0;
-			
-			if (scaling_type == 1){
-				ROW_N_A *= size;
+		ROW_N_A = 4;
+		COL_N_A = 4;
+		COL_N_B = 4;
+		execution_time = 0.0;
+		
+		if (scaling_type == 1){
+			ROW_N_A *= size;
+		}
+		
+		if (ROW_N_A % size != 0){
+			if(my_rank == MASTER){
+				cout << "Error: matrix size not compatible with thread number!" << endl;
 			}
-			
-			if (ROW_N_A % size != 0){
-				if(my_rank == MASTER){
-					cout << "Error: matrix size not compatible with thread number!" << endl;
-				}
-				MPI_Finalize();
-				return 1;
-			}
-			
-			for (j=0;j<N_TRIALS;++j){
-				if (my_rank == MASTER){
-					Matrix A = random_dense_matrix(ROW_N_A, COL_N_A);
-					print_matrix(A, "A"); // Debug
-					Matrix B = random_dense_matrix(COL_N_A, COL_N_B);
-					print_matrix(B, "B"); // Debug
-					
-					mat_and_time C_struct = matMulPar(A, B, size, my_rank);
-					
-					Matrix C = C_struct.M;
-					print_matrix(C, "C"); // Debug
-					
-					execution_time += C_struct.execution_time * (1.0 / N_TRIALS);
-					
-					deallocate_matrix(A);
-					deallocate_matrix(B);
-					deallocate_matrix(C);
-				} else {
-					Matrix A = allocate_matrix(ROW_N_A/size, COL_N_A);
-					Matrix B = allocate_matrix(COL_N_A, COL_N_B);
-					
-					deallocate_matrix(matMulPar(A, B, size, my_rank).M);
-					
-					deallocate_matrix(A);
-					deallocate_matrix(B);
-				}
-			}
-			
+			MPI_Finalize();
+			return 1;
+		}
+		
+		for (i=0;i<N_TRIALS;++i){
 			if (my_rank == MASTER){
-				if (scaling_type == 0){
-					ofstream report_file("reports/report_matMulRowsPar_strong.csv", std::ios_base::app);
-				} else {
-					ofstream report_file("reports/report_matMulRowsPar_weak.csv", std::ios_base::app);
-				}
-				report_file << fixed << setprecision(6);
-				report_file << size << "," << ROW_N_A << "," << COL_N_A << "," << COL_N_B << "," << execution_time << endl;
-				report_file.close();
+				Matrix A = random_dense_matrix(ROW_N_A, COL_N_A);
+				print_matrix(A, "A"); // Debug
+				Matrix B = random_dense_matrix(COL_N_A, COL_N_B);
+				print_matrix(B, "B"); // Debug
+				
+				mat_and_time C_struct = matMulPar(A, B, size, my_rank);
+				
+				Matrix C = C_struct.M;
+				print_matrix(C, "C"); // Debug
+				
+				execution_time += C_struct.execution_time * (1.0 / N_TRIALS);
+				
+				deallocate_matrix(A);
+				deallocate_matrix(B);
+				deallocate_matrix(C);
+			} else {
+				Matrix A = allocate_matrix(ROW_N_A/size, COL_N_A);
+				Matrix B = allocate_matrix(COL_N_A, COL_N_B);
+				
+				deallocate_matrix(matMulPar(A, B, size, my_rank).M);
+				
+				deallocate_matrix(A);
+				deallocate_matrix(B);
 			}
+		}
+		
+		if (my_rank == MASTER){
+			if (scaling_type == 0){
+				ofstream report_file("reports/report_matMulRowsPar_strong.csv", std::ios_base::app);
+			} else {
+				ofstream report_file("reports/report_matMulRowsPar_weak.csv", std::ios_base::app);
+			}
+			report_file << fixed << setprecision(6);
+			report_file << size << "," << ROW_N_A << "," << COL_N_A << "," << COL_N_B << "," << execution_time << endl;
+			report_file.close();
 		}
 	}
 	

@@ -59,30 +59,30 @@ int main(int argc, char** argv)
 	// Each block will be a marix BLOCK_ROW_N x BLOCK_COL_N
 	
 	for (scaling_type=0;scaling_type<1;++scaling_type){//(scaling_type=0;scaling_type<2;++scaling_type){
-		for (i=0;i<1;++i){//(i=0;i<3;++i){
-			/*switch(i){
+		for (i=0;i<3;++i){
+			switch(i){
 				case 0:
-					ROW_N_A = 32;
-					COL_N_A = 256;
-					COL_N_B = 32;
+					ROW_N_A = 4;
+					COL_N_A = 4;
+					COL_N_B = 4;
+					BLOCK_ROW_N = 1;
+					BLOCK_COL_N = 1;
 					break;
 				case 1:
-					ROW_N_A = 128;
-					COL_N_A = 16;
-					COL_N_B = 128;
+					ROW_N_A = 4;
+					COL_N_A = 4;
+					COL_N_B = 4;
+					BLOCK_ROW_N = 2;
+					BLOCK_COL_N = 2;
 					break;
 				case 2:
-					ROW_N_A = 64;
-					COL_N_A = 64;
-					COL_N_B = 64;
+					ROW_N_A = 4;
+					COL_N_A = 4;
+					COL_N_B = 4;
+					BLOCK_ROW_N = 4;
+					BLOCK_COL_N = 4;
 					break;
-			}*/
-			
-			ROW_N_A = 4;
-			COL_N_A = 4;
-			COL_N_B = 4;
-			BLOCK_ROW_N = 2;
-			BLOCK_COL_N = 2;
+			}
 			execution_time = 0.0;
 			
 			if (scaling_type == 1){

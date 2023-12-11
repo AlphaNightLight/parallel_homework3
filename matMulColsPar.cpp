@@ -57,87 +57,67 @@ int main(int argc, char** argv)
 	// the second must be COL_N_A x COL_N_B.
 	
 	for (scaling_type=0;scaling_type<1;++scaling_type){//(scaling_type=0;scaling_type<2;++scaling_type){
-		for (i=0;i<1;++i){//(i=0;i<3;++i){
-			/*switch(i){
-				case 0:
-					ROW_N_A = 32;
-					COL_N_A = 256;
-					COL_N_B = 32;
-					break;
-				case 1:
-					ROW_N_A = 128;
-					COL_N_A = 16;
-					COL_N_B = 128;
-					break;
-				case 2:
-					ROW_N_A = 64;
-					COL_N_A = 64;
-					COL_N_B = 64;
-					break;
-			}*/
-			
-			ROW_N_A = 4;
-			COL_N_A = 4;
-			COL_N_B = 4;
-			execution_time = 0.0;
-			
-			if (scaling_type == 1){
-				COL_N_B *= size;
+		ROW_N_A = 4;
+		COL_N_A = 4;
+		COL_N_B = 4;
+		execution_time = 0.0;
+		
+		if (scaling_type == 1){
+			COL_N_B *= size;
+		}
+		
+		if (COL_N_B % size != 0){
+			if(my_rank == MASTER){
+				cout << "Error: matrix size not compatible with thread number!" << endl;
 			}
-			
-			if (COL_N_B % size != 0){
-				if(my_rank == MASTER){
-					cout << "Error: matrix size not compatible with thread number!" << endl;
-				}
-				MPI_Finalize();
-				return 1;
-			}
-			
-			for (j=0;j<N_TRIALS;++j){
-				if (my_rank == MASTER){
-					Matrix A = random_dense_matrix(ROW_N_A, COL_N_A);
-					print_matrix(A, "A"); // Debug
-					Matrix B = random_dense_matrix(COL_N_A, COL_N_B);
-					print_matrix(B, "B"); // Debug
-					
-					mat_and_time C_struct = matMulPar(A, B, size, my_rank);
-					
-					Matrix C = C_struct.M;
-					print_matrix(C, "C"); // Debug
-					
-					execution_time += C_struct.execution_time * (1.0 / N_TRIALS);
-					
-					deallocate_matrix(A);
-					deallocate_matrix(B);
-					deallocate_matrix(C);
-				} else {
-					Matrix A = allocate_matrix(ROW_N_A, COL_N_A);
-					Matrix B = allocate_matrix(1, 1);
-					// Note: for non-master processes, B is just a dummy parameter to be able to call matMulPar. We don't fully allocate it to save space.
-					// We should anyway care of its dimensions, as well as the fact that it must be non-NULL to be placed in a scatter.
-					B.rows = COL_N_A;
-					B.cols = COL_N_B;
-					
-					matMulPar(A, B, size, my_rank);
-					
-					// We remember to reset B's dimension to 1x1, to deallocate it properly.
-					B.rows = 1;
-					B.cols = 1;
-					deallocate_matrix(A);
-					deallocate_matrix(B);
-				}
-			}
-			
+			MPI_Finalize();
+			return 1;
+		}
+		
+		for (j=0;j<N_TRIALS;++j){
 			if (my_rank == MASTER){
-				if (scaling_type == 0){
-					ofstream report_file("reports/report_matMulColsPar_strong.csv", std::ios_base::app);
-				} else {
-					ofstream report_file("reports/report_matMulColsPar_weak.csv", std::ios_base::app);
-				}
-				report_file << fixed << setprecision(6);
-				report_file << size << "," << ROW_N_A << "," << COL_N_A << "," << COL_N_B << "," << execution_time << endl;
-				report_file.close();
+				Matrix A = random_dense_matrix(ROW_N_A, COL_N_A);
+				print_matrix(A, "A"); // Debug
+				Matrix B = random_dense_matrix(COL_N_A, COL_N_B);
+				print_matrix(B, "B"); // Debug
+				
+				mat_and_time C_struct = matMulPar(A, B, size, my_rank);
+				
+				Matrix C = C_struct.M;
+				print_matrix(C, "C"); // Debug
+				
+				execution_time += C_struct.execution_time * (1.0 / N_TRIALS);
+				
+				deallocate_matrix(A);
+				deallocate_matrix(B);
+				deallocate_matrix(C);
+			} else {
+				Matrix A = allocate_matrix(ROW_N_A, COL_N_A);
+				Matrix B = allocate_matrix(1, 1);
+				// Note: for non-master processes, B is just a dummy parameter to be able to call matMulPar. We don't fully allocate it to save space.
+				// We should anyway care of its dimensions, as well as the fact that it must be non-NULL to be placed in a scatter.
+				B.rows = COL_N_A;
+				B.cols = COL_N_B;
+				
+				matMulPar(A, B, size, my_rank);
+				
+				// We remember to reset B's dimension to 1x1, to deallocate it properly.
+				B.rows = 1;
+				B.cols = 1;
+				deallocate_matrix(A);
+				deallocate_matrix(B);
 			}
+		}
+		
+		if (my_rank == MASTER){
+			if (scaling_type == 0){
+				ofstream report_file("reports/report_matMulColsPar_strong.csv", std::ios_base::app);
+			} else {
+				ofstream report_file("reports/report_matMulColsPar_weak.csv", std::ios_base::app);
+			}
+			report_file << fixed << setprecision(6);
+			report_file << size << "," << ROW_N_A << "," << COL_N_A << "," << COL_N_B << "," << execution_time << endl;
+			report_file.close();
 		}
 	}
 	
