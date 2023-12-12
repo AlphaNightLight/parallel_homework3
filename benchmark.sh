@@ -8,6 +8,11 @@ then
 	mkdir debugs
 fi
 
+if [ ! -d plots ];
+then
+	mkdir plots
+fi
+
 
 
 echo >"reports/report_matMul.csv" ROW_N_A,COL_N_A,COL_N_B,time
@@ -35,8 +40,8 @@ mpiexec -np 32 ./bin/matMulColsPar.exe
 mpiexec -np 64 ./bin/matMulColsPar.exe
 mpiexec -np 128 ./bin/matMulColsPar.exe
 
-echo >"reports/report_matMulBlockPar_strong.csv" SIZE,ROW_N_A,COL_N_A,COL_N_B,time
-echo >"reports/report_matMulBlockPar_weak.csv" SIZE,ROW_N_A,COL_N_A,COL_N_B,time
+echo >"reports/report_matMulBlockPar_strong.csv" SIZE,ROW_N_A,COL_N_A,COL_N_B,BLOCK_ROW_N,BLOCK_COL_N,time
+echo >"reports/report_matMulBlockPar_weak.csv" SIZE,ROW_N_A,COL_N_A,COL_N_B,BLOCK_ROW_N,BLOCK_COL_N,time
 mpiexec -np 1 ./bin/matMulBlockPar.exe
 mpiexec -np 2 ./bin/matMulBlockPar.exe
 mpiexec -np 4 ./bin/matMulBlockPar.exe

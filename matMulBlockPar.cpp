@@ -151,7 +151,8 @@ int main(int argc, char** argv)
 					report_file.open("reports/report_matMulBlockPar_weak.csv", std::ios_base::app);
 				}
 				report_file << fixed << setprecision(6);
-				report_file << size << "," << ROW_N_A << "," << COL_N_A << "," << COL_N_B << "," << execution_time << endl;
+				report_file << size << "," << ROW_N_A << "," << COL_N_A << ","
+							<< COL_N_B << "," << BLOCK_ROW_N << "," << BLOCK_COL_N << "," << execution_time << endl;
 				report_file.close();
 			}
 		}
