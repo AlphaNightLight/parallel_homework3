@@ -11,7 +11,7 @@
 
 #define MASTER 0
 
-#define N_TRIALS 3
+#define N_TRIALS 2
 // To reduce spikes an averege will be performed
 
 using namespace std;
@@ -57,9 +57,9 @@ int main(int argc, char** argv)
 	// the second must be COL_N_A x COL_N_B.
 	
 	for (scaling_type=0;scaling_type<2;++scaling_type){
-		ROW_N_A = 512;
-		COL_N_A = 512;
-		COL_N_B = 512;
+		ROW_N_A = 1024;
+		COL_N_A = 1024;
+		COL_N_B = 1024;
 		execution_time = 0.0;
 		
 		if (scaling_type == 1){

@@ -1,15 +1,15 @@
 #!/bin/bash
 # Job name
-#PBS -N IntroPARCO_homework3_alex_pegoraro
+#PBS -N IntroPARCO_homework3_alex_pegoraro_t2
 # Output files
 #PBS -o ./outputs.o
 #PBS -e ./errors.e
 # Queue name
 #PBS -q short_cpuQ
 # Set the maximum wall time
-#PBS -l walltime=04:00:00
+#PBS -l walltime=06:00:00
 # Number of nodes, cpus, mpi processors and amount of memory
-#PBS -l select=8:ncpus=16:mpiprocs=16:mem=1mb
+#PBS -l select=4:ncpus=64:mpiprocs=16:mem=1mb
 # Mail information
 #PBS -m abe
 #PBS -M alex.pegoraro@unitn.it
@@ -34,7 +34,7 @@ mpicxx --version
 lscpu
 
 # Select the working directory
-cd /home/alex.pegoraro/parallel_homework3
+cd /home/alex.pegoraro/parallel_homework3_t2
 
 # Before running the code should be compiled
 bash compile.sh

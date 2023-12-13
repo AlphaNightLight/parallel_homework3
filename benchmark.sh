@@ -28,6 +28,7 @@ mpiexec -np 16 ./bin/matMulRowsPar.exe
 mpiexec -np 32 ./bin/matMulRowsPar.exe
 mpiexec -np 64 ./bin/matMulRowsPar.exe
 mpiexec -np 128 ./bin/matMulRowsPar.exe
+mpiexec -np 256 ./bin/matMulRowsPar.exe
 
 echo >"reports/report_matMulColsPar_strong.csv" SIZE,ROW_N_A,COL_N_A,COL_N_B,time
 echo >"reports/report_matMulColsPar_weak.csv" SIZE,ROW_N_A,COL_N_A,COL_N_B,time
@@ -39,6 +40,7 @@ mpiexec -np 16 ./bin/matMulColsPar.exe
 mpiexec -np 32 ./bin/matMulColsPar.exe
 mpiexec -np 64 ./bin/matMulColsPar.exe
 mpiexec -np 128 ./bin/matMulColsPar.exe
+mpiexec -np 256 ./bin/matMulColsPar.exe
 
 echo >"reports/report_matMulBlockPar_strong.csv" SIZE,ROW_N_A,COL_N_A,COL_N_B,BLOCK_ROW_N,BLOCK_COL_N,time
 echo >"reports/report_matMulBlockPar_weak.csv" SIZE,ROW_N_A,COL_N_A,COL_N_B,BLOCK_ROW_N,BLOCK_COL_N,time
@@ -50,3 +52,4 @@ mpiexec -np 16 ./bin/matMulBlockPar.exe
 mpiexec -np 32 ./bin/matMulBlockPar.exe
 mpiexec -np 64 ./bin/matMulBlockPar.exe
 mpiexec -np 128 ./bin/matMulBlockPar.exe
+mpiexec -np 256 ./bin/matMulBlockPar.exe

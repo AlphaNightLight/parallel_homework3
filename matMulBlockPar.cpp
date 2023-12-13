@@ -11,7 +11,7 @@
 
 #define MASTER 0
 
-#define N_TRIALS 3
+#define N_TRIALS 2
 // To reduce spikes an averege will be performed
 
 using namespace std;
@@ -62,25 +62,25 @@ int main(int argc, char** argv)
 		for (i=0;i<3;++i){
 			switch(i){
 				case 0:
-					ROW_N_A = 512;
-					COL_N_A = 512;
-					COL_N_B = 512;
-					BLOCK_ROW_N = 8;
-					BLOCK_COL_N = 8;
+					ROW_N_A = 1024;
+					COL_N_A = 1024;
+					COL_N_B = 1024;
+					BLOCK_ROW_N = 16;
+					BLOCK_COL_N = 16;
 					break;
 				case 1:
-					ROW_N_A = 512;
-					COL_N_A = 512;
-					COL_N_B = 512;
-					BLOCK_ROW_N = 32;
-					BLOCK_COL_N = 32;
+					ROW_N_A = 1024;
+					COL_N_A = 1024;
+					COL_N_B = 1024;
+					BLOCK_ROW_N = 64;
+					BLOCK_COL_N = 64;
 					break;
 				case 2:
-					ROW_N_A = 512;
-					COL_N_A = 512;
-					COL_N_B = 512;
-					BLOCK_ROW_N = 128;
-					BLOCK_COL_N = 128;
+					ROW_N_A = 1024;
+					COL_N_A = 1024;
+					COL_N_B = 1024; 
+					BLOCK_ROW_N = 256;
+					BLOCK_COL_N = 256;
 					break;
 			}
 			execution_time = 0.0;

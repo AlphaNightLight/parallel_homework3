@@ -7,7 +7,7 @@
 
 #include <chrono>
 
-#define N_TRIALS 3
+#define N_TRIALS 2
 // To reduce spikes an averege will be performed
 
 using namespace std;
@@ -44,9 +44,9 @@ int main(int argc, char** argv)
 	// For the matrices to be product compatible, if the first is ROW_N_A x COL_N_A,
 	// the second must be COL_N_A x COL_N_B.
 	
-	ROW_N_A = 512;
-	COL_N_A = 512;
-	COL_N_B = 512;
+	ROW_N_A = 1024;
+	COL_N_A = 1024;
+	COL_N_B = 1024;
 	execution_time = 0.0;
 	
 	for (i=0;i<N_TRIALS;++i){
