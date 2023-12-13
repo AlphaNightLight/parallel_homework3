@@ -68,10 +68,10 @@ for (i_type = 1:4)
     case 2
       legend('Serial','Column partition','location', 'northeast');
     case 3
-      legend('Serial','Blocks 8x8','Blocks 32x32','Blocks 128x128',...
+      legend('Serial','Blocks 16x16','Blocks 64x64','Blocks 256x256',...
              'location', 'northeast');
     case 4
-      legend('Serial','Row partition','Column partition','Blocks 128x128',...
+      legend('Serial','Row partition','Column partition','Blocks 256x256',...
              'location', 'northeast');
   endswitch
 
@@ -105,10 +105,10 @@ for (i_type = 1:4)
     case 2
       legend('Ideal','Column partition','location', 'northwest');
     case 3
-      legend('Ideal','Blocks 8x8','Blocks 32x32','Blocks 128x128',...
+      legend('Ideal','Blocks 16x16','Blocks 64x64','Blocks 256x256',...
              'location', 'northwest');
     case 4
-      legend('Ideal','Row partition','Column partition','Blocks 128x128',...
+      legend('Ideal','Row partition','Column partition','Blocks 256x256',...
              'location', 'northwest');
   endswitch
 
@@ -143,10 +143,10 @@ for (i_type = 1:4)
     case 2
       legend('Ideal','Column partition','location', 'northeast');
     case 3
-      legend('Ideal','Blocks 8x8','Blocks 32x32','Blocks 128x128',...
+      legend('Ideal','Blocks 16x16','Blocks 64x64','Blocks 256x256',...
              'location', 'northeast');
     case 4
-      legend('Ideal','Row partition','Column partition','Blocks 128x128',...
+      legend('Ideal','Row partition','Column partition','Blocks 256x256',...
              'location', 'northeast');
   endswitch
 
@@ -190,11 +190,11 @@ for (i_type = 1:4)
     case 2
       legend('Serial with size[1]','Column partition','location', 'northwest');
     case 3
-      legend('Serial with size[1]','Blocks 8x8','Blocks 32x32',...
-             'Blocks 128x128','location', 'northwest');
+      legend('Serial with size[1]','Blocks 16x16','Blocks 64x64',...
+             'Blocks 256x256','location', 'northwest');
     case 4
       legend('Serial with size[1]','Row partition','Column partition',...
-             'Blocks 128x128','location', 'northwest');
+             'Blocks 256x256','location', 'northwest');
   endswitch
 
   print(['plots/plot_' strtrim(plot_names(i_type,:)) '_weak.png'],'-dpng');
